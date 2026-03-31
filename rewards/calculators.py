@@ -43,19 +43,12 @@ def compute_progress_reward(state: CivilizationState, prev_state: CivilizationSt
     return r_tech + bonus
 
 def detect_phoenix_bonus(history_log: List[str]) -> float:
-    """
-    Looks backwards in the history log to see if there was a catastrophic
-    environmental/population disaster followed by a period of recovery.
-    """
-    has_collapse = False
-    has_recovery = False
+    collapse_keywords = ["plague","famine","disaster","collapse","earthquake","drought"]
+    recovery_keywords = ["rebuilt","recovered","renaissance","green","prosperity","rebirth"]
     
-    for event in history_log:
-        if "Severe climate disaster" in event or "Famine strikes" in event:
-            has_collapse = True
-        if has_collapse and ("Transitioned to green energy" in event or "Boosted food" in event):
-            has_recovery = True
-            
+    has_collapse = any(any(kw in e.lower() for kw in collapse_keywords) for e in history_log)
+    has_recovery = any(any(kw in e.lower() for kw in recovery_keywords) for e in history_log)
+    
     if has_collapse and has_recovery:
         return 500.0
     return 0.0

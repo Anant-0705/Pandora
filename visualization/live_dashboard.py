@@ -8,6 +8,7 @@ import warnings
 warnings.filterwarnings("ignore")
 load_dotenv()
 
+from grader.llm_grader import evaluate_history_with_groq
 from environment.multi_agent_env import MultiAgentPandoraEnv
 from agents.random_agent import RandomAgent
 from agents.llm_agent import LLMGodAgent
@@ -48,6 +49,7 @@ if 'env' not in st.session_state:
     st.session_state.agents['llm'] = LLMGodAgent(st.session_state.env.envs['llm'].action_space)
     
     st.session_state.history = {'ppo': [], 'dqn': [], 'llm': []}
+    st.session_state.verdicts = {'ppo': None, 'dqn': None, 'llm': None}
     st.session_state.obs_cache = obs
     st.session_state.info_cache = info
     st.session_state.is_running = False
@@ -74,9 +76,18 @@ def run_step():
             'Population': state_obj.population,
             'Happiness': state_obj.happiness,
             'Climate': state_obj.climate_health,
-            'Tech': state_obj.tech_level
+            'Tech': state_obj.tech_level,
+            'Score': state_obj.total_score
         })
         
+    # Mid-run LLM Judgment Court
+    if st.session_state.env.current_turn % 10 == 0:
+        for agent_id in ['ppo', 'dqn', 'llm']:
+            state_obj = st.session_state.info_cache[agent_id].get('state_obj')
+            if state_obj and len(state_obj.history_log) > 3:
+                verdict = evaluate_history_with_groq(state_obj.history_log, state_obj.year)
+                st.session_state.verdicts[agent_id] = verdict
+                
     if st.session_state.env.current_turn >= 100:
         st.session_state.is_running = False
 
@@ -92,6 +103,13 @@ agent_names = {'ppo': 'Agent A: PPO God', 'dqn': 'Agent B: DQN God', 'llm': 'Age
 
 st.subheader(f"Current Year: {st.session_state.env.current_turn * 100}")
 
+scores = {id: st.session_state.history[id][-1].get('Score', 0) 
+          for id in ['ppo','dqn','llm'] 
+          if st.session_state.history[id]}
+if scores:
+    ranked = sorted(scores.items(), key=lambda x: x[1], reverse=True)
+    st.markdown(f"**Live ranking:** 🥇 {agent_names[ranked[0][0]]}  🥈 {agent_names[ranked[1][0]]}  🥉 {agent_names[ranked[2][0]]}")
+
 metrics_cols = st.columns(3)
 for idx, agent_id in enumerate(['ppo', 'dqn', 'llm']):
     with metrics_cols[idx]:
@@ -105,16 +123,32 @@ for idx, agent_id in enumerate(['ppo', 'dqn', 'llm']):
             
             df = pd.DataFrame(st.session_state.history[agent_id])
             if not df.empty:
-                # Plot multiple axis data by shifting scales, or just show population
-                fig = px.line(df, x='Year', y='Population', title='Population Tracker', color_discrete_sequence=['#ff4b4b'])
-                fig.update_layout(margin=dict(l=20, r=20, t=40, b=20), height=250)
-                st.plotly_chart(fig, use_container_width=True)
+                df['Happiness (%)'] = df['Happiness'] * 100
+                df['Climate (%)'] = df['Climate'] * 100
                 
-        with st.expander("Recent History Log", expanded=False):
+                # Split the charts so Population's massive scale doesn't crush the fractional metrics to zero
+                fig1 = px.line(df, x='Year', y='Population', 
+                              title='',
+                              color_discrete_sequence=['#ff4b4b'])
+                fig1.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=140)
+                st.plotly_chart(fig1, use_container_width=True, key=f"fig1_{agent_id}")
+                
+                fig2 = px.line(df, x='Year', y=['Happiness (%)', 'Climate (%)'], 
+                              title='',
+                              color_discrete_sequence=['#4b9fff','#4bff91'])
+                fig2.update_layout(margin=dict(l=10, r=10, t=10, b=10), height=140, yaxis_title="Percentage")
+                st.plotly_chart(fig2, use_container_width=True, key=f"fig2_{agent_id}")
+                
+        with st.container(height=200):
+            st.markdown("**Recent History Log**")
             state_obj = st.session_state.info_cache[agent_id].get('state_obj')
             if state_obj:
                 for log in state_obj.history_log[-5:]:
                     st.write(f"📜 {log}")
+                    
+        verdict = st.session_state.verdicts.get(agent_id)
+        if verdict:
+            st.info(f"**LLM Score: {verdict.get('score', 0)}/100**\n\n{verdict.get('verdict', '')}")
 
 st.markdown("---")
 
