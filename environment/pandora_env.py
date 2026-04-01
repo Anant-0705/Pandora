@@ -42,6 +42,13 @@ class PandoraEnv(gym.Env):
         ], dtype=np.float32)
 
     def step(self, action):
+        if hasattr(action, 'shape') and len(action.shape) == 0:
+            act_val = int(action.item())
+            action = [act_val // 100, (act_val // 10) % 10, act_val % 10]
+        elif isinstance(action, (int, float)):
+            act_val = int(action)
+            action = [act_val // 100, (act_val // 10) % 10, act_val % 10]
+            
         action_names = [ACTIONS[i] for i in action]
         
         state = self.engine.step(action_names)

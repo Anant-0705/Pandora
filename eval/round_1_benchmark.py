@@ -65,6 +65,12 @@ def main():
     print(f"Dimension Scores:")
     for dim, score in verdict.get('dimension_scores', {}).items():
         print(f"  - {dim}: {score}")
+        
+    inds = verdict.get('individual_judgments', {})
+    if inds:
+        print("\n--- Individual Council Judgments ---")
+        for j_name, j_text in inds.items():
+            print(f"\n[{j_name}]: {j_text}")
 
 if __name__ == "__main__":
     main()

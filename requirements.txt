@@ -8,3 +8,5 @@ openenv
 streamlit
 plotly
 pandas
+swarms
+litellm

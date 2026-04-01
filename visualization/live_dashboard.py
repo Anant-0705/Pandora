@@ -23,6 +23,12 @@ st.set_page_config(page_title="PANDORA Live", layout="wide", page_icon="🧬")
 st.title("🧬 PANDORA: Multi-Agent Civilization Sandbox")
 st.markdown("Watch three AI God Agents simultaneously weave 10,000 years of civilization off the exact same starting seed.")
 
+if 'env_version' not in st.session_state:
+    if 'env' in st.session_state:
+        del st.session_state['env']
+        del st.session_state['agents']
+    st.session_state.env_version = 1
+
 if 'env' not in st.session_state:
     st.session_state.env = MultiAgentPandoraEnv(seed=42)
     obs, info = st.session_state.env.reset_all()
@@ -58,7 +64,14 @@ def run_step():
     actions = {}
     for agent_id, agent in st.session_state.agents.items():
         if hasattr(agent, 'predict'):
-            actions[agent_id] = agent.predict(st.session_state.obs_cache[agent_id], deterministic=True)[0]
+            action = agent.predict(st.session_state.obs_cache[agent_id], deterministic=True)[0]
+            # Defense against trailing scalar DQN returns in session state
+            if hasattr(action, 'item') and not hasattr(action, '__len__'):
+                act_val = action.item()
+                action = [act_val // 100, (act_val // 10) % 10, act_val % 10]
+            elif isinstance(action, (int, float)):
+                action = [int(action) // 100, (int(action) // 10) % 10, int(action) % 10]
+            actions[agent_id] = action
         else:
             info_to_pass = st.session_state.info_cache[agent_id]
             actions[agent_id] = agent.act(st.session_state.obs_cache[agent_id], info_to_pass)
@@ -148,7 +161,11 @@ for idx, agent_id in enumerate(['ppo', 'dqn', 'llm']):
                     
         verdict = st.session_state.verdicts.get(agent_id)
         if verdict:
-            st.info(f"**LLM Score: {verdict.get('score', 0)}/100**\n\n{verdict.get('verdict', '')}")
+            st.info(f"**LLM Synthesis Score: {verdict.get('score', 0)}/100**\n\n{verdict.get('verdict', '')}")
+            if "individual_judgments" in verdict and verdict["individual_judgments"]:
+                with st.expander("Show Council Judgments"):
+                    for j_name, j_text in verdict["individual_judgments"].items():
+                        st.markdown(f"**{j_name}:** {j_text}")
 
 st.markdown("---")
 

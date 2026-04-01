@@ -1,11 +1,22 @@
 from environment.pandora_env import PandoraEnv
+import gymnasium as gym
+
+class FlattenActionWrapper(gym.ActionWrapper):
+    def __init__(self, env):
+        super().__init__(env)
+        self.action_space = gym.spaces.Discrete(1000)
+        
+    def action(self, act):
+        if hasattr(act, "item"):
+            act = act.item()
+        return [act // 100, (act // 10) % 10, act % 10]
 
 class MultiAgentPandoraEnv:
     def __init__(self, seed: int = 42):
         # Ensure identical starting timelines
         self.envs = {
             'ppo': PandoraEnv(seed=seed),
-            'dqn': PandoraEnv(seed=seed),
+            'dqn': FlattenActionWrapper(PandoraEnv(seed=seed)),
             'llm': PandoraEnv(seed=seed),
         }
         self.current_turn = 0
