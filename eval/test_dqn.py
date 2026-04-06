@@ -29,7 +29,7 @@ print("Testing DQN Model on Pandora Environment")
 print("="*60 + "\n")
 
 for step in range(1000):
-    action, _ = model.predict(obs, deterministic=True)  # Use deterministic for testing
+    action, _ = model.predict(obs, deterministic=True)  # DQN works well with deterministic
     obs, reward, done, truncated, info = env.step(action)
     total_reward += reward
     step_count += 1

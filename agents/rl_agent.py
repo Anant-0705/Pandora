@@ -50,6 +50,8 @@ def train_agent(algo_name: str, timesteps: int, seed: int = 42, n_envs: int = 4)
     Args:
         algo_name: 'ppo' or 'dqn'
         timesteps: Total training timesteps
+            - PPO: Recommended 1M-1.5M for this sparse-reward problem
+            - DQN: Recommended 300k-500k
         seed: Random seed
         n_envs: Number of parallel environments (increases learning speed)
     """
@@ -73,18 +75,20 @@ def train_agent(algo_name: str, timesteps: int, seed: int = 42, n_envs: int = 4)
         print("TensorBoard not installed; continuing without tensorboard logging.")
 
     if algo_name.lower() == 'ppo':
-        # PPO Hyperparameters optimized for long-horizon tasks
+        # PPO Hyperparameters optimized for long-horizon sparse-reward tasks
+        # NOTE: PPO needs MORE training time than DQN for this problem!
+        # Recommended: 1M-1.5M timesteps for good results
         model = PPO(
             "MlpPolicy",
             env,
             learning_rate=1e-4,          # Lower LR for stability
             n_steps=2048,                # Longer rollouts for credit assignment
-            batch_size=64,               # Standard batch size
-            n_epochs=10,                 # Multiple passes over data
+            batch_size=128,              # Increased from 64 for more stable updates
+            n_epochs=15,                 # Increased from 10 for better data utilization
             gamma=0.99,                  # High discount for long-term planning
-            gae_lambda=0.95,             # GAE parameter
+            gae_lambda=0.97,             # Increased from 0.95 for better credit assignment
             clip_range=0.2,              # PPO clipping
-            ent_coef=0.01,               # Encourage exploration
+            ent_coef=0.02,               # Increased from 0.01 for more exploration
             vf_coef=0.5,                 # Value function coefficient
             max_grad_norm=0.5,           # Gradient clipping
             policy_kwargs=dict(
@@ -137,7 +141,7 @@ if __name__ == "__main__":
     parser.add_argument("--algo", type=str, default="ppo", choices=["ppo", "dqn"],
                         help="Algorithm to use (ppo or dqn)")
     parser.add_argument("--timesteps", type=int, default=100000,
-                        help="Total training timesteps (default: 100,000)")
+                        help="Total training timesteps (default: 100,000; recommended: 1M+ for PPO, 300k+ for DQN)")
     parser.add_argument("--n_envs", type=int, default=4,
                         help="Number of parallel environments (default: 4)")
     parser.add_argument("--seed", type=int, default=42,

@@ -57,9 +57,9 @@ Examples:
     presets.add_argument('--test', action='store_true',
                         help='Quick test run (50k steps, good for testing)')
     presets.add_argument('--standard', action='store_true',
-                        help='Standard training (300k steps, recommended)')
+                        help='Standard training (300k DQN / 1M PPO, recommended)')
     presets.add_argument('--long', action='store_true',
-                        help='Long training (1M steps, for best results)')
+                        help='Long training (500k DQN / 1.5M PPO, for best results)')
     
     # Custom configuration
     parser.add_argument('--algo', type=str, choices=['ppo', 'dqn'],
@@ -78,10 +78,10 @@ Examples:
         timesteps = 50000
         mode_name = "Test"
     elif args.standard:
-        timesteps = 300000
+        timesteps = 300000  # Will be adjusted per-algorithm
         mode_name = "Standard"
     elif args.long:
-        timesteps = 1000000
+        timesteps = 500000  # Will be adjusted per-algorithm
         mode_name = "Long"
     elif args.steps:
         timesteps = args.steps
@@ -111,11 +111,23 @@ Examples:
     
     # Train each algorithm
     for algo in algorithms:
+        # Adjust timesteps per algorithm (PPO needs more!)
+        algo_timesteps = timesteps
+        if algo == 'ppo' and not args.steps:  # Only adjust if not custom
+            if args.test:
+                algo_timesteps = 50000
+            elif args.standard:
+                algo_timesteps = 1000000  # PPO needs 1M for standard
+            elif args.long:
+                algo_timesteps = 1500000  # PPO needs 1.5M for long
+            else:
+                algo_timesteps = 1000000  # Default for PPO
+        
         cmd = [
             sys.executable,
             'agents/rl_agent.py',
             '--algo', algo,
-            '--timesteps', str(timesteps),
+            '--timesteps', str(algo_timesteps),
             '--n_envs', str(n_envs)
         ]
         

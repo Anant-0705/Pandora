@@ -1,4 +1,5 @@
 services:
+  # Dashboard service - view trained models in action
   pandora-dashboard:
     build: .
     container_name: pandora-live
@@ -6,28 +7,54 @@ services:
       - "8501:8501"
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
     volumes:
       - ./models:/app/models
+      - ./logs:/app/logs
     restart: unless-stopped
 
+  # Training service for PPO (1M timesteps recommended)
   pandora-train-ppo:
     build: .
     container_name: pandora-train-ppo
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
     volumes:
       - ./models:/app/models
-    entrypoint: ["python", "-m", "agents.rl_agent", "--algo", "ppo", "--timesteps", "100000"]
+      - ./logs:/app/logs
+    entrypoint: ["python", "agents/rl_agent.py", "--algo", "ppo", "--timesteps", "1000000", "--n_envs", "4"]
     profiles:
       - training
 
+  # Training service for DQN (300k timesteps recommended)
   pandora-train-dqn:
     build: .
     container_name: pandora-train-dqn
     env_file:
       - .env
+    environment:
+      - PYTHONPATH=/app
     volumes:
       - ./models:/app/models
-    entrypoint: ["python", "-m", "agents.rl_agent", "--algo", "dqn", "--timesteps", "100000"]
+      - ./logs:/app/logs
+    entrypoint: ["python", "agents/rl_agent.py", "--algo", "dqn", "--timesteps", "300000", "--n_envs", "4"]
+    profiles:
+      - training
+
+  # Quick training service (both algorithms, standard mode)
+  pandora-train-both:
+    build: .
+    container_name: pandora-train-both
+    env_file:
+      - .env
+    environment:
+      - PYTHONPATH=/app
+    volumes:
+      - ./models:/app/models
+      - ./logs:/app/logs
+    entrypoint: ["python", "train_quick.py", "--both", "--standard"]
     profiles:
       - training

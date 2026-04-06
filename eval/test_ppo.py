@@ -21,12 +21,16 @@ obs, _ = env.reset()
 total_reward = 0
 step_count = 0
 
+# Try STOCHASTIC policy first (matches training behavior)
+use_deterministic = False  # Changed from True - try stochastic!
+
 print("\n" + "="*60)
 print("Testing PPO Model on Pandora Environment")
+print(f"Policy mode: {'DETERMINISTIC' if use_deterministic else 'STOCHASTIC'}")
 print("="*60 + "\n")
 
 for step in range(1000):
-    action, _ = model.predict(obs, deterministic=True)  # Use deterministic for testing
+    action, _ = model.predict(obs, deterministic=use_deterministic)
     obs, reward, done, truncated, info = env.step(action)
     total_reward += reward
     step_count += 1

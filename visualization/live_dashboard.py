@@ -4,6 +4,11 @@ import plotly.express as px
 import time
 from dotenv import load_dotenv
 import warnings
+import os
+import sys
+
+# Add project root to path for imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 warnings.filterwarnings("ignore")
 load_dotenv()
@@ -64,7 +69,9 @@ def run_step():
     actions = {}
     for agent_id, agent in st.session_state.agents.items():
         if hasattr(agent, 'predict'):
-            action = agent.predict(st.session_state.obs_cache[agent_id], deterministic=True)[0]
+            # Use stochastic for PPO (matches training), deterministic for DQN
+            use_deterministic = (agent_id == 'dqn')  # DQN works with deterministic, PPO needs stochastic
+            action = agent.predict(st.session_state.obs_cache[agent_id], deterministic=use_deterministic)[0]
             # Defense against trailing scalar DQN returns in session state
             if hasattr(action, 'item') and not hasattr(action, '__len__'):
                 act_val = action.item()

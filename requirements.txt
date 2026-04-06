@@ -1,12 +1,18 @@
 gymnasium
-pydantic
+pydantic>=2.0.0
 groq
 python-dotenv
 stable-baselines3
 torch
-openenv
+numpy
 streamlit
 plotly
 pandas
 swarms
 litellm
+
+# OpenEnv integration (for HuggingFace Spaces deployment)
+openenv-core>=0.1.0
+fastapi>=0.110.0
+uvicorn[standard]>=0.27.0
+websockets>=12.0
