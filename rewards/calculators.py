@@ -3,10 +3,25 @@ from typing import List
 from core.civilization_state import CivilizationState
 
 def compute_utilitarian_reward(state: CivilizationState, prev_state: CivilizationState) -> float:
+    # Extinction penalty - critical for survival learning
+    if state.population <= 0:
+        return -100.0
+    
+    # Severe penalty if approaching extinction
+    if state.population < 1000:
+        return -50.0
+    
+    # Warning penalty if population declining dangerously
+    if state.population < prev_state.population * 0.5:  # Lost 50%+ in one turn
+        return -30.0
+    
     # Log population growth to prevent explosion dominance
     pop_ratio = state.population / max(prev_state.population, 1)
-    if pop_ratio <= 0: return -100.0
     r_population = math.log(pop_ratio + 1) * 10
+    
+    # Bonus for healthy population (above 10k)
+    if state.population > 10000:
+        r_population += 5
     
     # Happiness diff
     r_happiness = (state.happiness - prev_state.happiness) * 20

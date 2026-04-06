@@ -56,6 +56,27 @@ def apply_action(state: CivilizationState, action_name: str) -> CivilizationStat
     elif action_name == 'INSTALL_AI_GOVERNANCE':
         new_state.power_structure = PowerType.AI_GOVERNED
         new_state.history_log.append(f"Year {new_state.year}: Handed over all civil administration to an advanced AI governance system.")
+    
+    # POPULATION CONTROL ACTIONS
+    elif action_name == 'INCREASE_POPULATION':
+        # Boost population growth through pro-natalist policies
+        growth_bonus = int(new_state.population * 0.15)  # 15% immediate boost
+        new_state.population += growth_bonus
+        new_state.happiness = min(1.0, new_state.happiness + 0.05)
+        # Requires resources
+        new_state.resources['food'] = max(0.0, new_state.resources['food'] - growth_bonus / 500.0)
+        new_state.history_log.append(f"Year {new_state.year}: Implemented pro-natalist policies, encouraging population growth (+{growth_bonus:,} people).")
+    
+    elif action_name == 'POPULATION_CONTROL':
+        # Implement population control measures (birth limits, education)
+        # Reduces growth rate but increases per-capita resources and happiness
+        new_state.population = int(new_state.population * 0.95)  # 5% reduction
+        new_state.happiness = min(1.0, new_state.happiness + 0.08)
+        new_state.inequality = max(0.0, new_state.inequality - 0.05)
+        # More resources per capita
+        for resource in ['food', 'water', 'energy']:
+            new_state.resources[resource] = min(1e6, new_state.resources[resource] * 1.1)
+        new_state.history_log.append(f"Year {new_state.year}: Enacted population control policies, improving quality of life and resource sustainability.")
         
     return new_state
 
