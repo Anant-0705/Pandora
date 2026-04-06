@@ -1,0 +1,33 @@
+services:
+  pandora-dashboard:
+    build: .
+    container_name: pandora-live
+    ports:
+      - "8501:8501"
+    env_file:
+      - .env
+    volumes:
+      - ./models:/app/models
+    restart: unless-stopped
+
+  pandora-train-ppo:
+    build: .
+    container_name: pandora-train-ppo
+    env_file:
+      - .env
+    volumes:
+      - ./models:/app/models
+    entrypoint: ["python", "-m", "agents.rl_agent", "--algo", "ppo", "--timesteps", "100000"]
+    profiles:
+      - training
+
+  pandora-train-dqn:
+    build: .
+    container_name: pandora-train-dqn
+    env_file:
+      - .env
+    volumes:
+      - ./models:/app/models
+    entrypoint: ["python", "-m", "agents.rl_agent", "--algo", "dqn", "--timesteps", "100000"]
+    profiles:
+      - training
